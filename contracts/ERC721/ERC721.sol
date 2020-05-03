@@ -2,6 +2,10 @@ pragma solidity ^0.6.4;
 import "./ERC721Basic.sol";
 
 
+/**
+ * @title ERC-721 Non-Fungible Token Standard, optional enumeration extension
+ * @dev See https://github.com/ethereum/EIPs/blob/master/EIPS/eip-721.md
+ */
 abstract contract ERC721Enumerable is ERC721Basic {
     function totalSupply() public virtual view returns (uint256);
 
