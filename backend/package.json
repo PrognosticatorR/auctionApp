@@ -1,0 +1,26 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "description": "Auction App backend built with solidity",
+  "main": "truffle-config.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/deveshrawat/auctionApp.git"
+  },
+  "author": "devesh rawat",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/deveshrawat/auctionApp/issues"
+  },
+  "homepage": "https://github.com/deveshrawat/auctionApp#readme",
+  "dependencies": {
+    "@truffle/hdwallet-provider": "^1.0.34",
+    "dotenv": "^8.2.0"
+  }
+}
