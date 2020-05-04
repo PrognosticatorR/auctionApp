@@ -1,6 +1,6 @@
 pragma solidity ^0.6.4;
 
-import "./Deed.sol";
+import './Deed.sol';
 
 
 /**
@@ -9,323 +9,309 @@ import "./Deed.sol";
  * Moreover, it includes the basic functionalities of an auction house
  */
 contract AuctionContract {
-    // Array with all auctions
-    Auction[] public auctions;
+	// Array with all auctions
+	Auction[] public auctions;
 
-    // Mapping from auction index to user bids
-    mapping(uint256 => Bid[]) public auctionBids;
+	// Mapping from auction index to user bids
+	mapping(uint256 => Bid[]) public auctionBids;
 
-    // Mapping from owner to a list of owned auctions
-    mapping(address => uint256[]) public auctionOwner;
+	// Mapping from owner to a list of owned auctions
+	mapping(address => uint256[]) public auctionOwner;
 
-    // Bid struct to hold bidder and amount
-    struct Bid {
-        address payable from;
-        uint256 amount;
-    }
+	// Bid struct to hold bidder and amount
+	struct Bid {
+		address payable from;
+		uint256 amount;
+	}
 
-    // Auction struct which holds all the required info
-    struct Auction {
-        string name;
-        uint256 blockDeadline;
-        uint256 startPrice;
-        string metadata;
-        uint256 deedId;
-        address deedAddress;
-        address owner;
-        bool active;
-        bool finalized;
-    }
+	// Auction struct which holds all the required info
+	struct Auction {
+		string name;
+		uint256 blockDeadline;
+		uint256 startPrice;
+		string metadata;
+		uint256 deedId;
+		address deedAddress;
+		address payable owner;
+		bool active;
+		bool finalized;
+	}
 
-    /**
-     * @dev Guarantees msg.sender is owner of the given auction
-     * @param _auctionId uint ID of the auction to validate its ownership belongs to msg.sender
-     */
-    modifier isOwner(uint256 _auctionId) {
-        require(auctions[_auctionId].owner == msg.sender);
-        _;
-    }
+	/**
+	 * @dev Guarantees msg.sender is owner of the given auction
+	 * @param _auctionId uint ID of the auction to validate its ownership belongs to msg.sender
+	 */
+	modifier isOwner(uint256 _auctionId) {
+		require(auctions[_auctionId].owner == msg.sender);
+		_;
+	}
 
-    /**
-     * @dev Guarantees this contract is owner of the given deed/token
-     * @param _deedAddress address of the deed repository to validate from
-     * @param _deedId uint256 ID of the deed which has been registered in the deed repository
-     */
-    modifier contractIsDeedOwner(address _deedAddress, uint256 _deedId) {
-        address deedOwner = Deed(_deedAddress).ownerOf(_deedId);
-        require(deedOwner == address(this));
-        _;
-    }
+	/**
+	 * @dev Guarantees this contract is owner of the given deed/token
+	 * @param _deedAddress address of the deed repository to validate from
+	 * @param _deedId uint256 ID of the deed which has been registered in the deed repository
+	 */
+	modifier contractIsDeedOwner(address _deedAddress, uint256 _deedId) {
+		address deedOwner = Deed(_deedAddress).ownerOf(_deedId);
+		require(deedOwner == address(this));
+		_;
+	}
 
-    /**
-     * @dev Disallow payments to this contract directly
-     */
-    receive() external payable {
-        revert();
-    }
+	/**
+	 * @dev Disallow payments to this contract directly
+	 */
+	receive() external payable {
+		revert();
+	}
 
-    /**
-     * @dev Gets the length of auctions
-     * @return uint representing the auction count
-     */
-    function getCount() public view returns (uint256) {
-        return auctions.length;
-    }
+	/**
+	 * @dev Gets the length of auctions
+	 * @return uint representing the auction count
+	 */
+	function getCount() public view returns (uint256) {
+		return auctions.length;
+	}
 
-    /**
-     * @dev Gets the bid counts of a given auction
-     * @param _auctionId uint ID of the auction
-     */
-    function getBidsCount(uint256 _auctionId) public view returns (uint256) {
-        return auctionBids[_auctionId].length;
-    }
+	/**
+	 * @dev Gets the bid counts of a given auction
+	 * @param _auctionId uint ID of the auction
+	 */
+	function getBidsCount(uint256 _auctionId) public view returns (uint256) {
+		return auctionBids[_auctionId].length;
+	}
 
-    /**
-     * @dev Gets an array of owned auctions
-     * @param _owner address of the auction owner
-     */
-    function getAuctionsOf(address _owner)
-        public
-        view
-        returns (uint256[] memory)
-    {
-        uint256[] memory ownedAuctions = auctionOwner[_owner];
-        return ownedAuctions;
-    }
+	/**
+	 * @dev Gets an array of owned auctions
+	 * @param _owner address of the auction owner
+	 */
+	function getAuctionsOf(address _owner) public view returns (uint256[] memory) {
+		uint256[] memory ownedAuctions = auctionOwner[_owner];
+		return ownedAuctions;
+	}
 
-    /**
-     * @dev Gets current bid
-     * @param _auctionId uint of the auction owner
-     * @return amount uint256, address of last bidder
-     */
-    function getCurrentBid(uint256 _auctionId)
-        public
-        view
-        returns (uint256, address)
-    {
-        uint256 bidsLength = auctionBids[_auctionId].length;
-        // if there are bids refund the last bid
-        if (bidsLength > 0) {
-            Bid memory lastBid = auctionBids[_auctionId][bidsLength - 1];
-            return (lastBid.amount, lastBid.from);
-        }
-        return (0, 0);
-    }
+	/**
+	 * @dev Gets current bid
+	 * @param _auctionId uint of the auction owner
+	 * @return amount uint256, address of last bidder
+	 */
+	function getCurrentBid(uint256 _auctionId) public view returns (uint256, address) {
+		uint256 bidsLength = auctionBids[_auctionId].length;
+		// if there are bids refund the last bid
+		if (bidsLength > 0) {
+			Bid memory lastBid = auctionBids[_auctionId][bidsLength - 1];
+			return (lastBid.amount, lastBid.from);
+		}
+		return (bidsLength, msg.sender);
+	}
 
-    /**
-     * @dev Gets the total number of auctions owned by an address
-     * @param _owner address of the owner
-     * @return uint total number of auctions
-     */
-    function getAuctionsCountOfOwner(address _owner)
-        public
-        view
-        returns (uint256)
-    {
-        return auctionOwner[_owner].length;
-    }
+	/**
+	 * @dev Gets the total number of auctions owned by an address
+	 * @param _owner address of the owner
+	 * @return uint total number of auctions
+	 */
+	function getAuctionsCountOfOwner(address _owner) public view returns (uint256) {
+		return auctionOwner[_owner].length;
+	}
 
-    function getAuctionById(uint256 _auctionId)
-        public
-        view
-        returns (
-            string memory name,
-            uint256 blockDeadline,
-            uint256 startPrice,
-            string memory metadata,
-            uint256 deedId,
-            address deedAddress,
-            address payable owner,
-            bool active,
-            bool finalized
-        )
-    {
-        Auction memory auc = auctions[_auctionId];
-        return (
-            auc.name,
-            auc.blockDeadline,
-            auc.startPrice,
-            auc.metadata,
-            auc.deedId,
-            auc.deedAddress,
-            auc.owner,
-            auc.active,
-            auc.finalized
-        );
-    }
+	function getAuctionById(uint256 _auctionId)
+		public
+		view
+		returns (
+			string memory name,
+			uint256 blockDeadline,
+			uint256 startPrice,
+			string memory metadata,
+			uint256 deedId,
+			address deedAddress,
+			address payable owner,
+			bool active,
+			bool finalized
+		)
+	{
+		Auction memory auc = auctions[_auctionId];
+		return (
+			auc.name,
+			auc.blockDeadline,
+			auc.startPrice,
+			auc.metadata,
+			auc.deedId,
+			auc.deedAddress,
+			auc.owner,
+			auc.active,
+			auc.finalized
+		);
+	}
 
-    /**
-     * @dev Creates an auction with the given informatin
-     * @param _deedAddress address of the Deed contract
-     * @param _deedId uint256 of the deed registered in Deed
-     * @param _auctionTitle string containing auction title
-     * @param _metadata string containing auction metadata
-     * @param _startPrice uint256 starting price of the auction
-     * @param _blockDeadline uint is the timestamp in which the auction expires
-     * @return bool whether the auction is created
-     */
-    function createAuction(
-        address _deedAddress,
-        uint256 _deedId,
-        string memory _auctionTitle,
-        string memory _metadata,
-        uint256 _startPrice,
-        uint256 _blockDeadline
-    ) public contractIsDeedOwner(_deedAddress, _deedId) returns (bool) {
-        uint256 auctionId = auctions.length;
-        Auction memory newAuction;
-        newAuction.name = _auctionTitle;
-        newAuction.blockDeadline = _blockDeadline;
-        newAuction.startPrice = _startPrice;
-        newAuction.metadata = _metadata;
-        newAuction.deedId = _deedId;
-        newAuction.deedAddress = _deedAddress;
-        newAuction.owner = msg.sender;
-        newAuction.active = true;
-        newAuction.finalized = false;
+	/**
+	 * @dev Creates an auction with the given informatin
+	 * @param _deedAddress address of the Deed contract
+	 * @param _deedId uint256 of the deed registered in Deed
+	 * @param _auctionTitle string containing auction title
+	 * @param _metadata string containing auction metadata
+	 * @param _startPrice uint256 starting price of the auction
+	 * @param _blockDeadline uint is the timestamp in which the auction expires
+	 * @return bool whether the auction is created
+	 */
+	function createAuction(
+		address _deedAddress,
+		uint256 _deedId,
+		string memory _auctionTitle,
+		string memory _metadata,
+		uint256 _startPrice,
+		uint256 _blockDeadline
+	) public contractIsDeedOwner(_deedAddress, _deedId) returns (bool) {
+		uint256 auctionId = auctions.length;
+		Auction memory newAuction;
+		newAuction.name = _auctionTitle;
+		newAuction.blockDeadline = _blockDeadline;
+		newAuction.startPrice = _startPrice;
+		newAuction.metadata = _metadata;
+		newAuction.deedId = _deedId;
+		newAuction.deedAddress = _deedAddress;
+		newAuction.owner = msg.sender;
+		newAuction.active = true;
+		newAuction.finalized = false;
 
-        auctions.push(newAuction);
-        auctionOwner[msg.sender].push(auctionId);
+		auctions.push(newAuction);
+		auctionOwner[msg.sender].push(auctionId);
 
-        emit AuctionCreated(msg.sender, auctionId);
-        return true;
-    }
+		emit AuctionCreated(msg.sender, auctionId);
+		return true;
+	}
 
-    function approveAndTransfer(
-        address _from,
-        address _to,
-        address _deedAddress,
-        uint256 _deedId
-    ) internal returns (bool) {
-        Deed remoteContract = Deed(_deedAddress);
-        remoteContract.approve(_to, _deedId);
-        remoteContract.transferFrom(_from, _to, _deedId);
-        return true;
-    }
+	function approveAndTransfer(address _from, address _to, address _deedAddress, uint256 _deedId)
+		internal
+		returns (bool)
+	{
+		Deed remoteContract = Deed(_deedAddress);
+		remoteContract.approve(_to, _deedId);
+		remoteContract.transferFrom(_from, _to, _deedId);
+		return true;
+	}
 
-    /**
-     * @dev Cancels an ongoing auction by the owner
-     * @dev Deed is transfered back to the auction owner
-     * @dev Bidder is refunded with the initial amount
-     * @param _auctionId uint ID of the created auction
-     */
-    function cancelAuction(uint256 _auctionId) public isOwner(_auctionId) {
-        Auction memory myAuction = auctions[_auctionId];
-        uint256 bidsLength = auctionBids[_auctionId].length;
+	/**
+	 * @dev Cancels an ongoing auction by the owner
+	 * @dev Deed is transfered back to the auction owner
+	 * @dev Bidder is refunded with the initial amount
+	 * @param _auctionId uint ID of the created auction
+	 */
+	function cancelAuction(uint256 _auctionId) public isOwner(_auctionId) {
+		Auction memory myAuction = auctions[_auctionId];
+		uint256 bidsLength = auctionBids[_auctionId].length;
 
-        // if there are bids refund the last bid
-        if (bidsLength > 0) {
-            Bid memory lastBid = auctionBids[_auctionId][bidsLength - 1];
-            if (!lastBid.from.send(lastBid.amount)) {
-                revert();
-            }
-        }
+		// if there are bids refund the last bid
+		if (bidsLength > 0) {
+			Bid memory lastBid = auctionBids[_auctionId][bidsLength - 1];
+			if (!lastBid.from.send(lastBid.amount)) {
+				revert();
+			}
+		}
 
-        // approve and transfer from this contract to auction owner
-        if (
-            approveAndTransfer(
-                address(this),
-                myAuction.owner,
-                myAuction.deedAddress,
-                myAuction.deedId
-            )
-        ) {
-            auctions[_auctionId].active = false;
-            emit AuctionCanceled(msg.sender, _auctionId);
-        }
-    }
+		// approve and transfer from this contract to auction owner
+		if (
+			approveAndTransfer(
+				address(this),
+				myAuction.owner,
+				myAuction.deedAddress,
+				myAuction.deedId
+			)
+		) {
+			auctions[_auctionId].active = false;
+			emit AuctionCanceled(msg.sender, _auctionId);
+		}
+	}
 
-    /**
-     * @dev Finalized an ended auction
-     * @dev The auction should be ended, and there should be at least one bid
-     * @dev On success Deed is transfered to bidder and auction owner gets the amount
-     * @param _auctionId uint ID of the created auction
-     */
-    function finalizeAuction(uint256 _auctionId) public payable {
-        Auction memory myAuction = auctions[_auctionId];
-        uint256 bidsLength = auctionBids[_auctionId].length;
+	/**
+	 * @dev Finalized an ended auction
+	 * @dev The auction should be ended, and there should be at least one bid
+	 * @dev On success Deed is transfered to bidder and auction owner gets the amount
+	 * @param _auctionId uint ID of the created auction
+	 */
+	function finalizeAuction(uint256 _auctionId) public payable {
+		Auction memory myAuction = auctions[_auctionId];
+		uint256 bidsLength = auctionBids[_auctionId].length;
 
-        // 1. if auction not ended just revert
-        if (block.timestamp < myAuction.blockDeadline) revert();
+		// 1. if auction not ended just revert
+		if (block.timestamp < myAuction.blockDeadline) revert();
 
-        // if there are no bids cancel
-        if (bidsLength == 0) {
-            cancelAuction(_auctionId);
-        } else {
-            // 2. the money goes to the auction owner
-            Bid memory lastBid = auctionBids[_auctionId][bidsLength - 1];
-            if (!myAuction.owner.send(lastBid.amount)) {
-                revert();
-            }
+		// if there are no bids cancel
+		if (bidsLength == 0) {
+			cancelAuction(_auctionId);
+		} else {
+			// 2. the money goes to the auction owner
+			Bid memory lastBid = auctionBids[_auctionId][bidsLength - 1];
+			if (!myAuction.owner.send(lastBid.amount)) {
+				revert();
+			}
 
-            // approve and transfer from this contract to the bid winner
-            if (
-                approveAndTransfer(
-                    address(this),
-                    lastBid.from,
-                    myAuction.deedAddress,
-                    myAuction.deedId
-                )
-            ) {
-                auctions[_auctionId].active = false;
-                auctions[_auctionId].finalized = true;
-                emit AuctionFinalized(msg.sender, _auctionId);
-            }
-        }
-    }
+			// approve and transfer from this contract to the bid winner
+			if (
+				approveAndTransfer(
+					address(this),
+					lastBid.from,
+					myAuction.deedAddress,
+					myAuction.deedId
+				)
+			) {
+				auctions[_auctionId].active = false;
+				auctions[_auctionId].finalized = true;
+				emit AuctionFinalized(msg.sender, _auctionId);
+			}
+		}
+	}
 
-    /**
-     * @dev Bidder sends bid on an auction
-     * @dev Auction should be active and not ended
-     * @dev Refund previous bidder if a new bid is valid and placed.
-     * @param _auctionId uint ID of the created auction
-     */
-    function bidOnAuction(uint256 _auctionId) external payable {
-        uint256 ethAmountSent = msg.value;
+	/**
+	 * @dev Bidder sends bid on an auction
+	 * @dev Auction should be active and not ended
+	 * @dev Refund previous bidder if a new bid is valid and placed.
+	 * @param _auctionId uint ID of the created auction
+	 */
+	function bidOnAuction(uint256 _auctionId) external payable {
+		uint256 ethAmountSent = msg.value;
 
-        // owner can't bid on their auctions
-        Auction memory myAuction = auctions[_auctionId];
-        if (myAuction.owner == msg.sender) revert();
+		// owner can't bid on their auctions
+		Auction memory myAuction = auctions[_auctionId];
+		if (myAuction.owner == msg.sender) revert();
 
-        // if auction is expired
-        if (block.timestamp > myAuction.blockDeadline) revert();
+		// if auction is expired
+		if (block.timestamp > myAuction.blockDeadline) revert();
 
-        uint256 bidsLength = auctionBids[_auctionId].length;
-        uint256 tempAmount = myAuction.startPrice;
-        Bid memory lastBid;
+		uint256 bidsLength = auctionBids[_auctionId].length;
+		uint256 tempAmount = myAuction.startPrice;
+		Bid memory lastBid;
 
-        // there are previous bids
-        if (bidsLength > 0) {
-            lastBid = auctionBids[_auctionId][bidsLength - 1];
-            tempAmount = lastBid.amount;
-        }
+		// there are previous bids
+		if (bidsLength > 0) {
+			lastBid = auctionBids[_auctionId][bidsLength - 1];
+			tempAmount = lastBid.amount;
+		}
 
-        // check if amound is greater than previous amount
-        if (ethAmountSent < tempAmount) revert();
+		// check if amound is greater than previous amount
+		if (ethAmountSent < tempAmount) revert();
 
-        // refund the last bidder
-        if (bidsLength > 0) {
-            if (!lastBid.from.send(lastBid.amount)) {
-                revert();
-            }
-        }
+		// refund the last bidder
+		if (bidsLength > 0) {
+			if (!lastBid.from.send(lastBid.amount)) {
+				revert();
+			}
+		}
 
-        // insert bid
-        Bid memory newBid;
-        newBid.from = msg.sender;
-        newBid.amount = ethAmountSent;
-        auctionBids[_auctionId].push(newBid);
-        emit BidSuccess(msg.sender, _auctionId);
-    }
+		// insert bid
+		Bid memory newBid;
+		newBid.from = msg.sender;
+		newBid.amount = ethAmountSent;
+		auctionBids[_auctionId].push(newBid);
+		emit BidSuccess(msg.sender, _auctionId);
+	}
 
-    event BidSuccess(address _from, uint256 _auctionId);
+	event BidSuccess(address _from, uint256 _auctionId);
 
-    // AuctionCreated is fired when an auction is created
-    event AuctionCreated(address _owner, uint256 _auctionId);
+	// AuctionCreated is fired when an auction is created
+	event AuctionCreated(address _owner, uint256 _auctionId);
 
-    // AuctionCanceled is fired when an auction is canceled
-    event AuctionCanceled(address _owner, uint256 _auctionId);
+	// AuctionCanceled is fired when an auction is canceled
+	event AuctionCanceled(address _owner, uint256 _auctionId);
 
-    // AuctionFinalized is fired when an auction is finalized
-    event AuctionFinalized(address _owner, uint256 _auctionId);
+	// AuctionFinalized is fired when an auction is finalized
+	event AuctionFinalized(address _owner, uint256 _auctionId);
 }
